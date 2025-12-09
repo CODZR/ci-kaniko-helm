@@ -1,0 +1,33 @@
+ARG KANIKO_VERSION=v1.23.2
+
+FROM golang:1.22-alpine AS kaniko-build
+ARG KANIKO_VERSION
+WORKDIR /kaniko-src
+COPY deps/kaniko-*.tar.gz /tmp/
+RUN apk add --no-cache bash git make \
+    && KANIKO_SRC_VERSION="${KANIKO_VERSION#v}" \
+    && mkdir -p /kaniko-src \
+    && tar -zxf "/tmp/kaniko-${KANIKO_SRC_VERSION}.tar.gz" --strip-components=1 -C /kaniko-src \
+    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /kaniko/executor ./cmd/executor
+
+FROM alpine:3.20
+
+ARG KANIKO_VERSION
+ENV KANIKO_VERSION=${KANIKO_VERSION} \
+    HELM_VERSION=v3.15.4 \
+    CHART_SCRIPT=/usr/local/bin/chart_build
+
+COPY deps/ /tmp/deps/
+COPY --from=kaniko-build /kaniko/executor /usr/local/bin/kaniko
+
+RUN apk add --no-cache bash curl git ca-certificates coreutils tar \
+    && tar -zx --strip-components=1 -C /usr/local/bin -f \
+        /tmp/deps/helm-${HELM_VERSION}-linux-amd64.tar.gz linux-amd64/helm \
+    && chmod +x /usr/local/bin/helm \
+    && chmod +x /usr/local/bin/kaniko \
+    && rm -rf /tmp/deps
+
+COPY chart_build.sh ${CHART_SCRIPT}
+RUN chmod +x ${CHART_SCRIPT}
+
+ENTRYPOINT ["/bin/bash"]
