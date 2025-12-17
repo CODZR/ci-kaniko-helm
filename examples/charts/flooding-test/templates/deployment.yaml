@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "flooding-test.fullname" . }}
+  labels:
+{{ include "flooding-test.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+{{ include "flooding-test.selectorLabels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "flooding-test.selectorLabels" . | indent 8 }}
+    spec:
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+{{- end }}
+      containers:
+        - name: {{ include "flooding-test.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+{{- if .Values.env }}
+          env:
+{{- range $name, $value := .Values.env }}
+            - name: {{ $name | quote }}
+              value: {{ $value | quote }}
+{{- end }}
+{{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+{{- if .Values.resources }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}
+

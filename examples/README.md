@@ -1,30 +1,46 @@
 # 示例（examples）
 
-## 1) 构建并推送 CI 镜像
+## 1) build/push CI 基础镜像（ci-kaniko-helm）
 
 ```bash
 docker login 39.96.223.210:5000
 ./build-ci-image.sh 1.0
 ```
 
-指定 registry / 镜像仓库名：
+## 2) 示例应用：flooding-test（Nginx 静态站）
+
+示例目录结构：
+
+- `examples/dist/`：静态资源（Nginx 直接托管）
+- `examples/deploy/Dockerfile`：把 `examples/dist/` 打进镜像
+- `examples/charts/flooding-test/`：Helm chart（Deployment/Service/Ingress 可选）
+- `examples/gitlab-ci.yml`：示例 CI（build 镜像 + helm 部署）
+
+## 3) Registry 启用账号密码后的设置（k3s/Helm）
+
+当 `39.96.223.210:5000` 启用了 Basic Auth 后，k3s 拉镜像需要 `imagePullSecret`。
+
+示例（namespace 以 `test-app` 为例）：
 
 ```bash
-./build-ci-image.sh 1.0 39.96.223.210:5000 dzr975336710/ci-kaniko-helm
+kubectl create ns test-app || true
+kubectl -n test-app create secret docker-registry regcred \
+  --docker-server=39.96.223.210:5000 \
+  --docker-username=dzr975336710 \
+  --docker-password='你的密码'
 ```
 
-## 2) 在 CI 中作为 Runner 镜像使用（GitLab 示例）
-
-参考 `examples/gitlab-ci.yml`。
-
-## 3) 关于自签 HTTPS 证书（Colima）
-
-如果你的 Registry 使用自签 HTTPS（例如访问 `https://39.96.223.210/v2/` 返回的证书 CN 还是 `registry.dzrlab.space`），
-那么在 Colima 里需要把对应 host/IP 加到 `insecure-registries`，否则 `docker login/push` 会因为证书校验失败。
-
-Colima 配置文件：`~/.colima/default/colima.yaml`
+Helm values 里配置 `imagePullSecrets`（见 `examples/charts/flooding-test/values.yaml`）：
 
 ```yaml
-docker:
-  insecure-registries:
-    - "39.96.223.210"
+imagePullSecrets:
+  - name: regcred
+```
+
+## 4) GitLab CI 变量（建议放在项目 Settings → CI/CD → Variables）
+
+`examples/gitlab-ci.yml` 需要这些变量：
+
+- `KUBE_CONFIG_B64`：k3s kubeconfig 的 base64（内容型变量）
+- `REGISTRY_USER`：registry 用户名（例：`dzr975336710`）
+- `REGISTRY_PASS`：registry 密码

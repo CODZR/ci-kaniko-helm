@@ -1,0 +1,28 @@
+replicaCount: 1
+
+image:
+  repository: 39.96.223.210:5000/test/flooding-test
+  tag: "1.0"
+  pullPolicy: IfNotPresent
+
+# 私有镜像仓库拉取凭证（registry 启用账号密码后必需）
+# kubectl -n <namespace> create secret docker-registry regcred \
+#   --docker-server=39.96.223.210:5000 \
+#   --docker-username=... \
+#   --docker-password=...
+imagePullSecrets: []
+
+service:
+  port: 80
+
+resources: {}
+
+env: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+

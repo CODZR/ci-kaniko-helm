@@ -1,9 +1,31 @@
-stages: [build]
+image: 39.96.223.210:5000/dzr975336710/ci-kaniko-helm:1.0
 
-build_image:
+stages:
+  - build
+  - deploy
+
+variables:
+  K8S_NAMESPACE: test
+  HELM_RELEASE: flooding-test
+  IMAGE_REPOSITORY: 39.96.223.210:5000/test/flooding-test
+  IMAGE_PULL_SECRET: regcred
+
+build:
   stage: build
-  image: 39.96.223.210:5000/dzr975336710/ci-kaniko-helm:1.0
   script:
-    - helm version
-    - kaniko --help
-    - chart_build
+    - kaniko -c "$CI_PROJECT_DIR/examples" -f "$CI_PROJECT_DIR/examples/deploy/Dockerfile" -d "${IMAGE_REPOSITORY}:${CI_COMMIT_SHORT_SHA}" --insecure --skip-tls-verify-pull
+  only:
+    - master
+    - /^release-.*$/
+
+deploy:
+  stage: deploy
+  script:
+    - mkdir -p ~/.kube
+    - echo "$KUBE_CONFIG_B64" | base64 -d > ~/.kube/config
+    - kubectl create ns "$K8S_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl -n "$K8S_NAMESPACE" create secret docker-registry "$IMAGE_PULL_SECRET" --docker-server=39.96.223.210:5000 --docker-username="$REGISTRY_USER" --docker-password="$REGISTRY_PASS" --dry-run=client -o yaml | kubectl apply -f -
+    - helm upgrade --install "$HELM_RELEASE" "$CI_PROJECT_DIR/examples/charts/flooding-test" -n "$K8S_NAMESPACE" --set image.repository="$IMAGE_REPOSITORY" --set image.tag="$CI_COMMIT_SHORT_SHA" --set imagePullSecrets[0].name="$IMAGE_PULL_SECRET"
+  only:
+    - master
+    - /^release-.*$/

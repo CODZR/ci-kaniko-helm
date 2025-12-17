@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "flooding-test.fullname" . }}
+  labels:
+{{ include "flooding-test.labels" . | indent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+{{ include "flooding-test.selectorLabels" . | indent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+

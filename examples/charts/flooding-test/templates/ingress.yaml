@@ -1,0 +1,36 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "flooding-test.fullname" . }}
+  labels:
+{{ include "flooding-test.labels" . | indent 4 }}
+{{- with .Values.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | quote }}
+{{- end }}
+{{- with .Values.ingress.tls }}
+  tls:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  rules:
+{{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+{{- range .paths }}
+          - path: {{ .path | default "/" | quote }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "flooding-test.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+{{- end }}
+{{- end }}
+{{- end }}
+

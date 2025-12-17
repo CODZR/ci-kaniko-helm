@@ -1,0 +1,7 @@
+apiVersion: v2
+name: flooding-test
+description: flooding-test Nginx 静态站（k3s/Helm 示例）
+type: application
+version: 0.1.0
+appVersion: "1.0"
+

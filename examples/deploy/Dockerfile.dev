@@ -1,0 +1,17 @@
+FROM 2c9ttmy29gq3er.xuanyuan.run/nginx:1.29.3-alpine
+
+RUN apk add --no-cache bash \
+  && echo "Asia/shanghai" > /etc/timezone
+
+ADD dist /usr/share/nginx/html
+
+COPY default.conf /etc/nginx/conf.d
+
+# 解决容器启动环境变量替换问题
+COPY enterpoint.sh /usr/share/nginx/html
+RUN chmod 777 /usr/share/nginx/html/enterpoint.sh
+ENTRYPOINT ["/usr/share/nginx/html/enterpoint.sh"]
+
+CMD ["nginx", "-g", "daemon off;"]
+
+EXPOSE 80
