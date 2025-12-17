@@ -25,15 +25,14 @@ COPY deps/apk-cache/ /var/cache/apk/
 COPY deps/ /tmp/deps/
 COPY --from=kaniko-build /kaniko/executor /usr/local/bin/kaniko
 
-RUN echo "file:///var/cache/apk" > /etc/apk/repositories \
-    && apk add --no-network --allow-untrusted bash curl git ca-certificates coreutils tar \
+RUN apk add --no-network --allow-untrusted /var/cache/apk/*.apk \
     && tar -zx --strip-components=1 -C /usr/local/bin -f \
         /tmp/deps/helm-${HELM_VERSION}-linux-amd64.tar.gz linux-amd64/helm \
     && chmod +x /usr/local/bin/helm \
     && chmod +x /usr/local/bin/kaniko \
-    && rm -rf /tmp/deps
+    && rm -rf /tmp/deps /var/cache/apk
 
-COPY chart_build.sh ${CHART_SCRIPT}
+COPY scripts/chart_build.sh ${CHART_SCRIPT}
 RUN chmod +x ${CHART_SCRIPT}
 
 ENTRYPOINT ["/bin/bash"]

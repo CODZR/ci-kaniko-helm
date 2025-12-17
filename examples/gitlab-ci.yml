@@ -1,0 +1,9 @@
+stages: [build]
+
+build_image:
+  stage: build
+  image: 39.96.223.210:5000/dzr975336710/ci-kaniko-helm:1.0
+  script:
+    - helm version
+    - kaniko --help
+    - chart_build
