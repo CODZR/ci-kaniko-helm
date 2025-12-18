@@ -9,7 +9,7 @@ env:
   REGISTRY_HOST: ${{ vars.REGISTRY_HOST || '39.96.223.210:5000' }}
   K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE || 'test-app' }}
   HELM_RELEASE: ${{ vars.HELM_RELEASE || 'k3s-test' }}
-  IMAGE_REPOSITORY: ${{ vars.IMAGE_REPOSITORY || format('{0}/test/k3s-test', vars.REGISTRY_HOST) }}
+  IMAGE_REPOSITORY: ${{ vars.IMAGE_REPOSITORY || format('{0}/test/k3s-test', (vars.REGISTRY_HOST || '39.96.223.210:5000')) }}
   IMAGE_PULL_SECRET: ${{ vars.IMAGE_PULL_SECRET || 'regcred' }}
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
           TAG="${GITHUB_SHA::7}"
 
           echo "$REGISTRY_PASS" | docker login "${REGISTRY_HOST}" -u "$REGISTRY_USER" --password-stdin
-          docker build -f examples/deploy/Dockerfile -t "${IMAGE_REPOSITORY}:${TAG}" examples
+          docker build -f deploy/Dockerfile -t "${IMAGE_REPOSITORY}:${TAG}" .
           docker push "${IMAGE_REPOSITORY}:${TAG}"
 
   deploy:
@@ -60,7 +60,7 @@ jobs:
             --docker-password="${REGISTRY_PASS}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          helm upgrade --install "${HELM_RELEASE}" examples/charts/k3s-test \
+          helm upgrade --install "${HELM_RELEASE}" charts/k3s-test \
             -n "${K8S_NAMESPACE}" \
             --set image.repository="${IMAGE_REPOSITORY}" \
             --set image.tag="${TAG}" \
