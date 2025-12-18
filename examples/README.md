@@ -7,13 +7,14 @@ docker login 39.96.223.210:5000
 ./build-ci-image.sh 1.0
 ```
 
-## 2) 示例应用：flooding-test（Nginx 静态站）
+## 2) 示例应用：k3s-test（Nginx 静态站）
 
 示例目录结构：
 
 - `examples/dist/`：静态资源（Nginx 直接托管）
 - `examples/deploy/Dockerfile`：把 `examples/dist/` 打进镜像
-- `examples/charts/flooding-test/`：Helm chart（Deployment/Service/Ingress 可选）
+- `examples/charts/k3s-test/`：Helm chart（Deployment/Service/Ingress 可选）
+- `examples/charts/k3s-test/`：Helm chart（Deployment/Service/NodePort，Ingress 可选）
 - `examples/gitlab-ci.yml`：示例 CI（build 镜像 + helm 部署）
 
 ## 3) Registry 启用账号密码后的设置（k3s/Helm）
@@ -30,7 +31,7 @@ kubectl -n test-app create secret docker-registry regcred \
   --docker-password='你的密码'
 ```
 
-Helm values 里配置 `imagePullSecrets`（见 `examples/charts/flooding-test/values.yaml`）：
+Helm values 里配置 `imagePullSecrets`（见 `examples/charts/k3s-test/values.yaml`）：
 
 ```yaml
 imagePullSecrets:
@@ -44,3 +45,8 @@ imagePullSecrets:
 - `KUBE_CONFIG_B64`：k3s kubeconfig 的 base64（内容型变量）
 - `REGISTRY_USER`：registry 用户名（例：`dzr975336710`）
 - `REGISTRY_PASS`：registry 密码
+
+## 5) 访问方式（NodePort）
+
+该示例 Chart 默认使用 `NodePort`，端口在 `examples/charts/k3s-test/values.yaml` 的 `service.nodePort`（默认 `30080`）。
+部署成功后可用 `http://39.96.223.210:30080/` 访问（前提：服务器防火墙/安全组放行该端口）。

@@ -1,0 +1,67 @@
+name: k3s-test build & deploy (k3s)
+
+on:
+  push:
+    branches: ["master"]
+  workflow_dispatch: {}
+
+env:
+  REGISTRY_HOST: ${{ vars.REGISTRY_HOST || '39.96.223.210:5000' }}
+  K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE || 'test-app' }}
+  HELM_RELEASE: ${{ vars.HELM_RELEASE || 'k3s-test' }}
+  IMAGE_REPOSITORY: ${{ vars.IMAGE_REPOSITORY || format('{0}/test/k3s-test', vars.REGISTRY_HOST) }}
+  IMAGE_PULL_SECRET: ${{ vars.IMAGE_PULL_SECRET || 'regcred' }}
+
+jobs:
+  build_push:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build & push image
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASS: ${{ secrets.REGISTRY_PASS }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_SHA::7}"
+
+          echo "$REGISTRY_PASS" | docker login "${REGISTRY_HOST}" -u "$REGISTRY_USER" --password-stdin
+          docker build -f examples/deploy/Dockerfile -t "${IMAGE_REPOSITORY}:${TAG}" examples
+          docker push "${IMAGE_REPOSITORY}:${TAG}"
+
+  deploy:
+    runs-on: self-hosted
+    needs: [build_push]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy with Helm
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASS: ${{ secrets.REGISTRY_PASS }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_SHA::7}"
+
+          # Prereqs on the self-hosted runner:
+          # - docker
+          # - kubectl (k3s provides kubectl)
+          # - helm
+          command -v kubectl >/dev/null
+          command -v helm >/dev/null
+
+          kubectl create ns "${K8S_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n "${K8S_NAMESPACE}" create secret docker-registry "${IMAGE_PULL_SECRET}" \
+            --docker-server="${REGISTRY_HOST}" \
+            --docker-username="${REGISTRY_USER}" \
+            --docker-password="${REGISTRY_PASS}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          helm upgrade --install "${HELM_RELEASE}" examples/charts/k3s-test \
+            -n "${K8S_NAMESPACE}" \
+            --set image.repository="${IMAGE_REPOSITORY}" \
+            --set image.tag="${TAG}" \
+            --set imagePullSecrets[0].name="${IMAGE_PULL_SECRET}"

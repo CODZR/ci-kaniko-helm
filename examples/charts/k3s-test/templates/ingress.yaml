@@ -2,9 +2,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "flooding-test.fullname" . }}
+  name: {{ include "k3s-test.fullname" . }}
   labels:
-{{ include "flooding-test.labels" . | indent 4 }}
+{{ include "k3s-test.labels" . | indent 4 }}
 {{- with .Values.ingress.annotations }}
   annotations:
 {{ toYaml . | indent 4 }}
@@ -27,10 +27,9 @@ spec:
             pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
-                name: {{ include "flooding-test.fullname" $ }}
+                name: {{ include "k3s-test.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
 {{- end }}
 {{- end }}
 {{- end }}
-

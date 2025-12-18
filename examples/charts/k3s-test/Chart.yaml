@@ -1,0 +1,6 @@
+apiVersion: v2
+name: k3s-test
+description: k3s-test Nginx 静态站（k3s/Helm 示例）
+type: application
+version: 0.1.0
+appVersion: "1.0"
