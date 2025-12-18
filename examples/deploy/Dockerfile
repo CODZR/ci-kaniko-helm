@@ -1,4 +1,4 @@
-FROM nginx:1.27-alpine
+FROM 2c9ttmy29gq3er.xuanyuan.run/nginx:1.29.3-alpine
 
 COPY dist/ /usr/share/nginx/html/
 COPY default.conf /etc/nginx/conf.d/default.conf
