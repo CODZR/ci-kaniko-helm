@@ -1,74 +1,67 @@
-#!/bin/bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 TEMPLATE_PATH="/usr/share/nginx/html/runtime-config.js.template"
 TARGET_PATH="/usr/share/nginx/html/runtime-config.js"
 
 escape_sed_value() {
-	printf '%s' "${1:-}" | sed -e 's/[\/&]/\\&/g'
+	printf '%s' "${1-}" | sed -e 's/[\/&]/\\&/g'
 }
 
 replace_placeholder() {
-	local placeholder="$1"
-	local value="$2"
+	placeholder="$1"
+	value="$2"
 
-	local escaped
 	escaped="$(escape_sed_value "${value}")"
 	sed -i "s#__${placeholder}__#${escaped}#g" "${TARGET_PATH}"
 }
 
 resolve_env_value() {
-	local candidate
-	local value
-
 	for candidate in "$@"; do
-		if [[ -z "${candidate}" ]]; then
-			continue
-		fi
+		[ -n "${candidate}" ] || continue
 
-		value="${!candidate-}"
-
-		if [[ -n "${value}" ]]; then
+		# candidate 为固定的环境变量名列表，不来自外部输入
+		eval "value=\${${candidate}-}"
+		if [ -n "${value-}" ]; then
 			printf '%s' "${value}"
-			return
+			return 0
 		fi
 	done
+
+	return 0
 }
 
 inject_runtime_value() {
-	local placeholder="$1"
+	placeholder="$1"
 	shift
-	local resolved=""
 
 	resolved="$(resolve_env_value "$@")"
 	replace_placeholder "${placeholder}" "${resolved}"
 }
 
 render_runtime_config() {
-	if [[ ! -f "${TEMPLATE_PATH}" ]]; then
-		return
-	fi
+	[ -f "${TEMPLATE_PATH}" ] || return 0
 
 	cp "${TEMPLATE_PATH}" "${TARGET_PATH}"
 
-	inject_runtime_value "VITE_API_BASE_URL" \
-		"VITE_API_BASE_URL" 
-	inject_runtime_value "VITE_USER_AUTHORIZATION_URI" \
-		"VITE_USER_AUTHORIZATION_URI"
-	inject_runtime_value "VITE_CLIENT_ID" \
-		"VITE_CLIENT_ID" 
-	inject_runtime_value "VITE_CLIENT_SECRET" \
-		"VITE_CLIENT_SECRET" 
-	inject_runtime_value "VITE_REDIRECT_URI" \
-		"VITE_REDIRECT_URI" 
-	inject_runtime_value "VITE_CHECK_TOKEN_ACCESS" \
-		"VITE_CHECK_TOKEN_ACCESS" 
-	inject_runtime_value "VITE_USER_INFO_URL" \
-		"VITE_USER_INFO_URL" 
-	inject_runtime_value "VITE_USER_ROLE_URL" \
-		"VITE_USER_ROLE_URL" 
-	inject_runtime_value "VITE_MAP_WFS_URL" \
-		"VITE_MAP_WFS_URL" 
+	inject_runtime_value "NEXT_PUBLIC_API_BASE_URL" \
+		"NEXT_PUBLIC_API_BASE_URL" 
+	inject_runtime_value "NEXT_PUBLIC_USER_AUTHORIZATION_URI" \
+		"NEXT_PUBLIC_USER_AUTHORIZATION_URI"
+	inject_runtime_value "NEXT_PUBLIC_CLIENT_ID" \
+		"NEXT_PUBLIC_CLIENT_ID" 
+	inject_runtime_value "NEXT_PUBLIC_CLIENT_SECRET" \
+		"NEXT_PUBLIC_CLIENT_SECRET" 
+	inject_runtime_value "NEXT_PUBLIC_REDIRECT_URI" \
+		"NEXT_PUBLIC_REDIRECT_URI" 
+	inject_runtime_value "NEXT_PUBLIC_CHECK_TOKEN_ACCESS" \
+		"NEXT_PUBLIC_CHECK_TOKEN_ACCESS" 
+	inject_runtime_value "NEXT_PUBLIC_USER_INFO_URL" \
+		"NEXT_PUBLIC_USER_INFO_URL" 
+	inject_runtime_value "NEXT_PUBLIC_USER_ROLE_URL" \
+		"NEXT_PUBLIC_USER_ROLE_URL" 
+	inject_runtime_value "NEXT_PUBLIC_MAP_WFS_URL" \
+		"NEXT_PUBLIC_MAP_WFS_URL" 
 }
 
 render_runtime_config

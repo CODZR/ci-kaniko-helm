@@ -1,11 +1,16 @@
 FROM 2c9ttmy29gq3er.xuanyuan.run/nginx:1.29.3-alpine
 
-COPY dist/ /usr/share/nginx/html/
-COPY default.conf /etc/nginx/conf.d/default.conf
-COPY enterpoint.sh /usr/share/nginx/html/enterpoint.sh
+RUN echo "Asia/shanghai" > /etc/timezone
 
-RUN chmod +x /usr/share/nginx/html/enterpoint.sh
+ADD out /usr/share/nginx/html
 
-ENTRYPOINT ["/usr/share/nginx/html/enterpoint.sh"]
+COPY default.conf /etc/nginx/conf.d
+
+# 解决容器启动环境变量替换问题
+COPY enterpoint.sh /entrypoint.sh
+RUN chmod 755 /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
 CMD ["nginx", "-g", "daemon off;"]
 
+EXPOSE 80

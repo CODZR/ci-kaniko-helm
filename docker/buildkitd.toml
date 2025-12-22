@@ -1,0 +1,7 @@
+[registry."39.96.223.210:5000"]
+  http = true
+  insecure = true
+
+[registry."2c9ttmy29gq3er.xuanyuan.run"]
+  http = false
+  insecure = false
